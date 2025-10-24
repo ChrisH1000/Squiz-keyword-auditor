@@ -1,0 +1,33 @@
+<!--@@ Keep this DIV and correspondiong close tag on page if you are running client side @@-->
+<!--@@ <div id="super-content-events-%asset_assetid%"> @@-->
+
+<script runat="server">
+// runat="server"
+// type="text/javascript"
+
+(function() {
+    class TemplateBuilder {
+        constructor() {
+            this.assets = %globals_asset_file_contents:1087883%;
+        }
+        
+        buildTemplate() {
+            let html = `
+                <div class="event-listing">
+                    <h1>Events for Asset: %asset_assetid%</h1>
+                    <p>Asset Name: %asset_name%</p>
+                </div>
+            `;
+            return html.trim();
+        }
+    }
+    
+    const templateBuilder = new TemplateBuilder();
+    print(templateBuilder.buildTemplate());
+    
+    // document.getElementById('super-content-events-%asset_assetid%').innerHTML = templateBuilder.buildTemplate();
+})();
+
+</script>
+
+<!--@@ </div> @@-->

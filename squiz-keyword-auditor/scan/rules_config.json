@@ -1,0 +1,40 @@
+{
+  "required_comments": {
+    "top": [
+      "<!--@@ Keep this DIV and correspondiong close tag on page if you are running client side @@-->",
+      "<!--@@ <div id=\"super-content-events-%asset_assetid%\"> @@-->"
+    ],
+    "bottom": [
+      "<!--@@ </div> @@-->"
+    ]
+  },
+  "script": {
+    "open_tag": "<script runat=\"server\">",
+    "requires_iife": true,
+    "requires_class_name": "TemplateBuilder",
+    "requires_constructor_assets_pattern": "%globals_asset_file_contents:",
+    "requires_build_method": "buildTemplate",
+    "requires_print": "print(templateBuilder.buildTemplate())",
+    "client_dom_line_pattern": "document.getElementById\\('super-content-events-%asset_assetid%'\\)\\.innerHTML",
+    "client_dom_line_must_be_commented": true,
+    "forbid_globals": [
+      "window\\.",
+      "(?<!//\\s)document\\."
+    ]
+  },
+  "keywords": {
+    "valid_prefixes": [
+      "%asset_",
+      "%globals_",
+      "%frontend_asset_"
+    ],
+    "modifiers_prefix": "^",
+    "examples": [
+      "%asset_assetid%",
+      "%globals_asset_file_contents:<id>%",
+      "%asset_name%",
+      "%asset_url%",
+      "%frontend_asset_types%"
+    ]
+  }
+}
