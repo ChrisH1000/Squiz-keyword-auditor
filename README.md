@@ -19,11 +19,11 @@ A LangChain-powered tool to audit Squiz Matrix templates for:
 2. **Ollama** installed and running:
    ```bash
    # Install Ollama: https://ollama.ai
-   
+
    # Pull required models (or use your preferred models)
    ollama pull llama3.2:3b
    ollama pull nomic-embed-text
-   
+
    # Or use the models from the PRD:
    ollama pull llama3.1:8b-instruct
    ollama pull bge-small
@@ -137,13 +137,13 @@ The auditor checks for the following required structure:
      constructor() {
        this.assets = %globals_asset_file_contents:12345%;
      }
-     
+
      buildTemplate() {
        // Build HTML here
        return html.trim();
      }
    }
-   
+
    const templateBuilder = new TemplateBuilder();
    print(templateBuilder.buildTemplate());
    ```
