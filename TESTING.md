@@ -8,7 +8,7 @@
 ## Quick Test
 ```bash
 # Run rules-only test (no Ollama required initially)
-python squiz-keyword-auditor/main.py --codebase test-templates --no-llm
+python main.py --codebase test-templates --no-llm
 ```
 
 Expected: Should find errors in invalid-template.html
@@ -16,7 +16,7 @@ Expected: Should find errors in invalid-template.html
 ## Full Test
 ```bash
 # Run with LLM (requires Ollama)
-python squiz-keyword-auditor/main.py --codebase test-templates
+python main.py --codebase test-templates
 ```
 
 Expected: Should generate AI-powered summary

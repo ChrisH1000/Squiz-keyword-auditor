@@ -49,13 +49,13 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```bash
-python squiz-keyword-auditor/main.py --codebase /path/to/your/project
+python main.py --codebase /path/to/your/project
 ```
 
 ### Options
 
 ```bash
-python squiz-keyword-auditor/main.py \
+python main.py \
   --codebase /path/to/project \
   --refresh-docs           # Re-download Squiz docs (ignore cache)
   --rebuild                # Rebuild vector store from scratch
@@ -68,17 +68,17 @@ python squiz-keyword-auditor/main.py \
 
 **Full audit with AI summary:**
 ```bash
-python squiz-keyword-auditor/main.py --codebase ./templates
+python main.py --codebase ./templates
 ```
 
 **Rules-only (no LLM):**
 ```bash
-python squiz-keyword-auditor/main.py --codebase ./templates --no-llm
+python main.py --codebase ./templates --no-llm
 ```
 
 **Refresh documentation and rebuild vector store:**
 ```bash
-python squiz-keyword-auditor/main.py \
+python main.py \
   --codebase ./templates \
   --refresh-docs \
   --rebuild
@@ -95,7 +95,7 @@ OLLAMA_MODEL=llama3.1:8b-instruct
 OLLAMA_EMBEDDING_MODEL=bge-small
 
 # Vector Store Configuration
-CHROMA_PERSIST_DIR=./squiz-keyword-auditor/data/vectorstore
+CHROMA_PERSIST_DIR=./data/vectorstore
 CHUNK_SIZE=1200
 CHUNK_OVERLAP=120
 RETRIEVAL_K=3
@@ -104,7 +104,7 @@ RETRIEVAL_K=3
 MAX_LLM_CALLS=10
 
 # Cache Configuration
-CACHE_DIR=./squiz-keyword-auditor/data/squiz_docs
+CACHE_DIR=./data/squiz_docs
 ```
 
 ## What It Validates
@@ -167,7 +167,7 @@ The auditor checks for the following required structure:
 
 ## Output
 
-The auditor generates two files in `squiz-keyword-auditor/reports/`:
+The auditor generates two files in `reports/`:
 
 1. **`findings.jsonl`**: Detailed JSON findings for each file
 2. **`summary.md`**: Human-readable Markdown summary
@@ -180,7 +180,7 @@ The auditor generates two files in `squiz-keyword-auditor/reports/`:
 ## Project Structure
 
 ```
-squiz-keyword-auditor/
+.
 ├── main.py                    # CLI entry point
 ├── ingest/
 │   ├── fetch_docs.py          # Download & cache docs
@@ -235,7 +235,7 @@ ollama pull bge-small
 
 ```bash
 # Rebuild vector store
-python squiz-keyword-auditor/main.py --codebase ./templates --rebuild
+python main.py --codebase ./templates --rebuild
 ```
 
 ## Development
@@ -252,7 +252,7 @@ pytest tests/
 
 ### Adding New Rules
 
-Edit `squiz-keyword-auditor/scan/rules_config.json` to add or modify validation rules.
+Edit `scan/rules_config.json` to add or modify validation rules.
 
 ## License
 

@@ -99,12 +99,12 @@ Originally specified Python 3.11+ in PRD, but made compatible with Python 3.9:
    - scan/rules_keywords.py
    - rag/summariser.py
 
-4. Created `run.py` wrapper to fix Python path issues
+4. Moved all files to root directory (removed nested folder structure)
 
 ## Project Structure
 
 ```
-squiz-keyword-auditor/
+.
 ├── ingest/           # Documentation fetching and embedding
 │   ├── fetch_docs.py
 │   └── split_embed.py
@@ -127,8 +127,6 @@ squiz-keyword-auditor/
 │   ├── findings.jsonl
 │   └── summary.md
 └── main.py           # CLI entry point
-
-run.py                # Root-level wrapper for imports
 requirements.txt      # All dependencies
 .env                  # Configuration (Ollama settings)
 README.md             # Full documentation
@@ -168,27 +166,27 @@ MAX_LLM_CALLS=10
 
 ### Basic Audit (Rules Only)
 ```bash
-python3 run.py --codebase /path/to/templates --no-llm
+python3 main.py --codebase /path/to/templates --no-llm
 ```
 
 ### Full Audit with LLM Summarization
 ```bash
-python3 run.py --codebase /path/to/templates
+python3 main.py --codebase /path/to/templates
 ```
 
 ### Refresh Documentation
 ```bash
-python3 run.py --codebase /path/to/templates --refresh-docs
+python3 main.py --codebase /path/to/templates --refresh-docs
 ```
 
 ### Rebuild Vector Store
 ```bash
-python3 run.py --codebase /path/to/templates --rebuild-vector-store
+python3 main.py --codebase /path/to/templates --rebuild-vector-store
 ```
 
 ### Custom Model
 ```bash
-python3 run.py --codebase /path/to/templates --model llama3.1:8b-instruct --max-calls 20
+python3 main.py --codebase /path/to/templates --model llama3.1:8b-instruct --max-calls 20
 ```
 
 ## What Works
@@ -218,8 +216,7 @@ python3 run.py --codebase /path/to/templates --model llama3.1:8b-instruct --max-
 
 1. **No OpenAI Support Yet**: Currently Ollama-only (can be added if needed)
 2. **Requires Ollama Running**: Must have Ollama service active
-3. **Python Path Workaround**: Uses `run.py` wrapper instead of proper package structure
-4. **No Tests**: Comprehensive manual testing done, but no pytest suite
+3. **No Tests**: Comprehensive manual testing done, but no pytest suite
 
 ## Next Steps (Optional Enhancements)
 

@@ -39,12 +39,12 @@ ENV/
 .env.local
 
 # Data & Cache
-squiz-keyword-auditor/data/squiz_docs/*.html
-squiz-keyword-auditor/data/vectorstore/
+data/squiz_docs/*.html
+data/vectorstore/
 
 # Reports
-squiz-keyword-auditor/reports/*.jsonl
-squiz-keyword-auditor/reports/*.md
+reports/*.jsonl
+reports/*.md
 
 # Logs
 *.log
