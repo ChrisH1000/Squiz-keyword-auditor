@@ -15,12 +15,16 @@ A LangChain-powered tool to audit Squiz Matrix templates for:
 
 ## Prerequisites
 
-1. **Python 3.11+**
+1. **Python 3.9+** (tested with Python 3.9 and 3.11+)
 2. **Ollama** installed and running:
    ```bash
    # Install Ollama: https://ollama.ai
    
-   # Pull required models
+   # Pull required models (or use your preferred models)
+   ollama pull llama3.2:3b
+   ollama pull nomic-embed-text
+   
+   # Or use the models from the PRD:
    ollama pull llama3.1:8b-instruct
    ollama pull bge-small
    ```
