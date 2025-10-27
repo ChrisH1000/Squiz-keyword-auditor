@@ -33,6 +33,7 @@ class StructureValidator:
         results = {
             "has_top_comment": False,
             "has_open_div": False,
+            "div_id": None,  # Captured div ID from comment
             "has_bottom_comment": False,
             "has_runat_server": False,
             "has_iife": False,
@@ -41,6 +42,8 @@ class StructureValidator:
             "has_buildTemplate": False,
             "prints_result": False,
             "client_dom_line_commented": None,  # None = not found, True = commented, False = uncommented
+            "client_dom_id": None,  # Captured ID from getElementById
+            "div_id_matches": None,  # None = not checked, True = matches, False = mismatch
         }
 
         # Check top comments
@@ -53,8 +56,13 @@ class StructureValidator:
             content, self.required_comments.get("bottom", [])
         )
 
-        # Check div tag
-        results["has_open_div"] = "super-content-events-%asset_assetid%" in content
+        # Check div tag with flexible pattern
+        div_pattern = self.required_comments.get("open_div_pattern")
+        if div_pattern:
+            div_match = re.search(div_pattern, content)
+            if div_match:
+                results["has_open_div"] = True
+                results["div_id"] = div_match.group(1)  # Capture the div ID
 
         # Check script tag with runat="server"
         results["has_runat_server"] = self.script_rules.get("open_tag", "") in content
@@ -86,7 +94,14 @@ class StructureValidator:
         # Check client DOM line
         dom_pattern = self.script_rules.get("client_dom_line_pattern")
         if dom_pattern:
-            results["client_dom_line_commented"] = self._check_dom_line(content, dom_pattern)
+            dom_result = self._check_dom_line(content, dom_pattern)
+            results["client_dom_line_commented"] = dom_result["commented"]
+            results["client_dom_id"] = dom_result["id"]
+
+            # Check if div ID matches getElementById ID
+            if self.script_rules.get("require_matching_div_id"):
+                if results["div_id"] and results["client_dom_id"]:
+                    results["div_id_matches"] = (results["div_id"] == results["client_dom_id"])
 
         return results
 
@@ -140,19 +155,26 @@ class StructureValidator:
         pattern = rf'class\s+{re.escape(class_name)}\s*\{{'
         return bool(re.search(pattern, content))
 
-    def _check_dom_line(self, content: str, pattern: str) -> Optional[bool]:
-        """Check if DOM manipulation line is commented.
+    def _check_dom_line(self, content: str, pattern: str) -> Dict:
+        """Check if DOM manipulation line is commented and extract ID.
 
         Args:
             content: File content
-            pattern: Pattern to search for
+            pattern: Pattern to search for (should have capture group for ID)
 
         Returns:
-            True if commented, False if not commented, None if not found
+            Dict with 'commented' (True/False/None) and 'id' (captured ID or None)
         """
+        result = {"commented": None, "id": None}
+
         # Look for the pattern
-        if not re.search(pattern, content):
-            return None
+        match = re.search(pattern, content)
+        if not match:
+            return result
+
+        # Capture the ID if pattern has a group
+        if match.groups():
+            result["id"] = match.group(1)
 
         # Check if it's commented
         # Look for // before the pattern on the same line
@@ -162,11 +184,12 @@ class StructureValidator:
                 # Check if line starts with // (after stripping whitespace)
                 stripped = line.strip()
                 if stripped.startswith('//'):
-                    return True
+                    result["commented"] = True
                 else:
-                    return False
+                    result["commented"] = False
+                break
 
-        return None
+        return result
 
     def generate_issues(self, structure: Dict) -> List[Dict]:
         """Generate issues from structure validation results.
@@ -191,8 +214,17 @@ class StructureValidator:
             issues.append({
                 "severity": "error",
                 "code": "MISSING_OPEN_DIV",
-                "message": "Missing super-content-events div",
-                "fix": "Add <!--@@ <div id=\"super-content-events-%asset_assetid%\"> @@-->"
+                "message": "Missing div comment with %asset_assetid%",
+                "fix": "Add <!--@@ <div id=\"your-id-%asset_assetid%\"> @@--> (use any ID containing %asset_assetid%)"
+            })
+
+        # Check if div ID matches getElementById ID
+        if structure.get("div_id_matches") is False:
+            issues.append({
+                "severity": "error",
+                "code": "DIV_ID_MISMATCH",
+                "message": f"Div ID '{structure['div_id']}' doesn't match getElementById ID '{structure['client_dom_id']}'",
+                "fix": f"Update getElementById to use '{structure['div_id']}' or update the div comment to use '{structure['client_dom_id']}'"
             })
 
         if not structure["has_bottom_comment"]:
