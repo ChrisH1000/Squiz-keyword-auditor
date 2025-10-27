@@ -210,7 +210,6 @@ def main(
             summary = summariser.generate_summary(all_findings, no_llm=no_llm)
         else:
             # Use rules-only summary
-            from rag.summariser import ReportSummariser
             temp_summariser = ReportSummariser()
             summary = temp_summariser._generate_rules_summary(all_findings)
 
