@@ -1,0 +1,20 @@
+<!--@@ This is some content that needs to be in the client DOM, not the server DOM @@-->
+<!--@@ <div id="test-content-%asset_assetid%"> @@-->
+<script runat="server">
+(function() {
+    class TemplateBuilder {
+        constructor() {
+            this.assets = %globals_asset_file_contents:12345%;
+        }
+        
+        buildTemplate() {
+            return '<div>Asset ID: %asset_assetid%</div>';
+        }
+    }
+    
+    const builder = new TemplateBuilder();
+    print(builder.buildTemplate());
+})();
+</script>
+<!--@@ </div> @@-->
+<!--@@ <script>document.getElementById('test-content-%asset_assetid%').innerHTML = html;</script> @@-->
