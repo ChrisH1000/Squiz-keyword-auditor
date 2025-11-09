@@ -1,34 +1,57 @@
-"""Structure validation rules for server-side JS templates."""
+"""Structure validation rules for server-side JS templates.
+
+This module implements checks to validate a server-side JavaScript
+template follows the expected structure used by the project. The
+StructureValidator inspects the raw file content and returns a
+compact results dict that other code can convert into user-facing
+issues.
+"""
 
 import logging
 import re
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict
 from utils.text import escape_regex
 
 logger = logging.getLogger(__name__)
 
 
 class StructureValidator:
-    """Validates server-side JavaScript template structure."""
+    """Validates server-side JavaScript template structure.
+
+    The validator is driven by a rules configuration dict which
+    declares the required comment blocks and script rules. The
+    returned structure dictionary contains boolean flags and
+    extracted metadata used by `generate_issues` to produce user
+    friendly errors and fixes.
+    """
 
     def __init__(self, rules_config: Dict):
         """Initialize structure validator.
 
         Args:
-            rules_config: Rules configuration dict
+            rules_config: Rules configuration dict. Expected keys include
+                - required_comments: mapping for top/bottom/open_div_pattern
+                - script: mapping for script-related checks
         """
         self.rules = rules_config
+        # Comments to look for in the template (top/bottom markers)
         self.required_comments = rules_config.get("required_comments", {})
+        # Rules related to the <script runat="server"> block
         self.script_rules = rules_config.get("script", {})
 
     def validate_file(self, content: str) -> Dict:
-        """Validate file structure.
+        """Validate file structure and extract helpful metadata.
+
+        The result dict contains flags (booleans) describing which
+        checks passed and additional captured values such as the
+        div id found inside the marker comment and the ID used by a
+        getElementById call.
 
         Args:
-            content: File content
+            content: File content as a single string
 
         Returns:
-            Structure validation results
+            Dict containing validation flags and extracted values
         """
         results = {
             "has_top_comment": False,
@@ -41,64 +64,66 @@ class StructureValidator:
             "has_constructor_assets": False,
             "has_buildTemplate": False,
             "prints_result": False,
-            "client_dom_line_commented": None,  # None = not found, True = commented, False = uncommented
+            # None = not found, True = commented, False = uncommented
+            "client_dom_line_commented": None,
             "client_dom_id": None,  # Captured ID from getElementById
-            "div_id_matches": None,  # None = not checked, True = matches, False = mismatch
+            # None = not checked, True = matches, False = mismatch
+            "div_id_matches": None,
         }
 
-        # Check top comments
+        # Top and bottom comment presence (simple string checks)
         results["has_top_comment"] = self._check_comments(
             content, self.required_comments.get("top", [])
         )
-
-        # Check bottom comments
         results["has_bottom_comment"] = self._check_comments(
             content, self.required_comments.get("bottom", [])
         )
 
-        # Check div tag with flexible pattern
+        # If an open_div_pattern is configured, use it to capture the div id
         div_pattern = self.required_comments.get("open_div_pattern")
         if div_pattern:
             div_match = re.search(div_pattern, content)
             if div_match:
                 results["has_open_div"] = True
-                results["div_id"] = div_match.group(1)  # Capture the div ID
+                # The pattern is expected to contain a capture group for the id
+                results["div_id"] = div_match.group(1)
 
-        # Check script tag with runat="server"
+        # Check script tag existence (presence of runat="server")
         results["has_runat_server"] = self.script_rules.get("open_tag", "") in content
 
-        # Check for IIFE pattern
+        # Optionally require an IIFE wrapper in the client-side code
         if self.script_rules.get("requires_iife"):
             results["has_iife"] = self._check_iife(content)
 
-        # Check for class-based structure
+        # Optionally require a class with a known name
         class_name = self.script_rules.get("requires_class_name")
         if class_name:
             results["class_name"] = class_name if self._check_class(content, class_name) else None
 
-        # Check constructor with assets pattern
+        # Constructor assets initialization check (string containment)
         assets_pattern = self.script_rules.get("requires_constructor_assets_pattern")
         if assets_pattern:
             results["has_constructor_assets"] = assets_pattern in content
 
-        # Check buildTemplate method
+        # buildTemplate method presence (accept common spacing variants)
         build_method = self.script_rules.get("requires_build_method")
         if build_method:
             results["has_buildTemplate"] = f"buildTemplate()" in content or f"buildTemplate ()" in content
 
-        # Check print statement
+        # Print statement check used to ensure the template prints output
         print_statement = self.script_rules.get("requires_print")
         if print_statement:
             results["prints_result"] = print_statement in content
 
-        # Check client DOM line
+        # Inspect the client-side DOM line (getElementById) for commenting and id extraction
         dom_pattern = self.script_rules.get("client_dom_line_pattern")
         if dom_pattern:
             dom_result = self._check_dom_line(content, dom_pattern)
             results["client_dom_line_commented"] = dom_result["commented"]
             results["client_dom_id"] = dom_result["id"]
 
-            # Check if div ID matches getElementById ID
+            # If required, check whether the div id captured from the comment
+            # matches the id used in the getElementById call
             if self.script_rules.get("require_matching_div_id"):
                 if results["div_id"] and results["client_dom_id"]:
                     results["div_id_matches"] = (results["div_id"] == results["client_dom_id"])
@@ -106,31 +131,24 @@ class StructureValidator:
         return results
 
     def _check_comments(self, content: str, required_comments: List[str]) -> bool:
-        """Check if required comments are present.
+        """Check whether the required comment strings are present.
 
-        Args:
-            content: File content
-            required_comments: List of required comment strings
-
-        Returns:
-            True if all comments found
+        This is a straightforward substring check (not regex). The
+        configuration can supply the exact strings to look for, which
+        allows the project to require specific opening/closing markers.
         """
         for comment in required_comments:
-            # Handle regex escaping for special chars in comments
+            # If any required comment is missing, return False
             if comment not in content:
                 return False
         return True
 
     def _check_iife(self, content: str) -> bool:
-        """Check for IIFE pattern.
+        """Detect a minimal IIFE (immediately-invoked function expression).
 
-        Args:
-            content: File content
-
-        Returns:
-            True if IIFE found
+        We search for common start sequences for an IIFE: (function(...) { ...
+        This is intentionally lenient because code formatting may vary.
         """
-        # Look for (function() { ... })() pattern
         iife_patterns = [
             r'\(function\s*\([^)]*\)\s*\{',
             r'\(\s*function\s*\([^)]*\)\s*\{',
@@ -142,46 +160,37 @@ class StructureValidator:
         return False
 
     def _check_class(self, content: str, class_name: str) -> bool:
-        """Check for class definition.
+        """Check for a class definition with the expected name.
 
-        Args:
-            content: File content
-            class_name: Expected class name
-
-        Returns:
-            True if class found
+        This uses a simple regex to look for the ``class ClassName {`` pattern.
         """
-        # Look for class ClassName { pattern
         pattern = rf'class\s+{re.escape(class_name)}\s*\{{'
         return bool(re.search(pattern, content))
 
     def _check_dom_line(self, content: str, pattern: str) -> Dict:
-        """Check if DOM manipulation line is commented and extract ID.
+        """Check if a DOM manipulation line is present, whether it's commented, and extract the ID.
 
-        Args:
-            content: File content
-            pattern: Pattern to search for (should have capture group for ID)
-
-        Returns:
-            Dict with 'commented' (True/False/None) and 'id' (captured ID or None)
+        The provided pattern should capture the id used in getElementById as
+        the first capture group. The function returns a dict with keys:
+            - commented: None/True/False
+            - id: captured id or None
         """
         result = {"commented": None, "id": None}
 
-        # Look for the pattern
+        # Try to find the first occurrence of the pattern in the file
         match = re.search(pattern, content)
         if not match:
             return result
 
-        # Capture the ID if pattern has a group
+        # Capture the id value from the regex groups, if present
         if match.groups():
             result["id"] = match.group(1)
 
-        # Check if it's commented
-        # Look for // before the pattern on the same line
+        # Determine whether the matching line is commented out (//)
         lines = content.split('\n')
         for line in lines:
             if re.search(pattern, line):
-                # Check if line starts with // (after stripping whitespace)
+                # Strip whitespace to check for leading //
                 stripped = line.strip()
                 if stripped.startswith('//'):
                     result["commented"] = True
@@ -192,13 +201,11 @@ class StructureValidator:
         return result
 
     def generate_issues(self, structure: Dict) -> List[Dict]:
-        """Generate issues from structure validation results.
+        """Convert structure validation results into a list of issues.
 
-        Args:
-            structure: Structure validation results
-
-        Returns:
-            List of issue dicts
+        Each issue contains a severity, a machine-friendly code, a
+        human-readable message and a suggested fix. The consumer can
+        serialize these issues into reports or print them to the user.
         """
         issues = []
 
@@ -218,7 +225,7 @@ class StructureValidator:
                 "fix": "Add <!--@@ <div id=\"your-id-%asset_assetid%\"> @@--> (use any ID containing %asset_assetid%)"
             })
 
-        # Check if div ID matches getElementById ID
+        # If the ID used in the template comment does not match the DOM id
         if structure.get("div_id_matches") is False:
             issues.append({
                 "severity": "error",
